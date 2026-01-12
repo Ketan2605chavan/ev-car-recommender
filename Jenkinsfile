@@ -26,6 +26,7 @@ pipeline {
                 bat '''
                 docker stop %CONTAINER_NAME% || echo Container not running
                 docker rm %CONTAINER_NAME% || echo Container not found
+                exit /b 0
                 '''
             }
         }
