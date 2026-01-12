@@ -17,26 +17,23 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
+                bat 'docker build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Stop Old Container (if exists)') {
             steps {
-                sh '''
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
+                bat '''
+                docker stop %CONTAINER_NAME% || echo Container not running
+                docker rm %CONTAINER_NAME% || echo Container not found
                 '''
             }
         }
 
         stage('Run Docker Container') {
             steps {
-                sh '''
-                docker run -d \
-                -p 3000:80 \
-                --name $CONTAINER_NAME \
-                $IMAGE_NAME
+                bat '''
+                docker run -d -p 3000:80 --name %CONTAINER_NAME% %IMAGE_NAME%
                 '''
             }
         }
