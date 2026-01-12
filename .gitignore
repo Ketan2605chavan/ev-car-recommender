@@ -1,23 +1,52 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# ================================
+# Node / React
+# ================================
+node_modules/
+build/
+coverage/
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
-
-# misc
-.DS_Store
+# ================================
+# Environment files
+# ================================
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
+# ================================
+# Logs
+# ================================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# ================================
+# Package managers
+# ================================
+.pnp
+.pnp.js
+
+# ================================
+# OS / System files
+# ================================
+.DS_Store
+_MACOSX
+
+# ================================
+# IDE / Editor files
+# ================================
+.vscode/
+.idea/
+
+# ================================
+# Docker
+# ================================
+docker-compose.override.yml
+
+# ================================
+# Do NOT ignore these (important)
+# ================================
+!Dockerfile
+!Jenkinsfile
+!nginx.conf
