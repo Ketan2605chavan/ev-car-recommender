@@ -4,6 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "ev-car-recommender"
         CONTAINER_NAME = "ev-car-recommender-container"
+        CI = "true"
     }
 
     stages {
@@ -12,6 +13,18 @@ pipeline {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Ketan2605chavan/ev-car-recommender.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm install'
+            }
+        }
+
+        stage('Unit Tests with Coverage') {
+            steps {
+                bat 'npm run test:coverage'
             }
         }
 
@@ -43,10 +56,12 @@ pipeline {
     post {
         success {
             echo '✅ Jenkins pipeline completed successfully!'
+            echo '🧪 Unit tests passed with coverage'
             echo '🌐 Application running at http://localhost:3000'
         }
+
         failure {
-            echo '❌ Jenkins pipeline failed!'
+            echo '❌ Jenkins pipeline failed (tests or build failed)'
         }
     }
 }
