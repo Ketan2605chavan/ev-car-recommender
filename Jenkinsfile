@@ -2,14 +2,16 @@ pipeline {
     agent any
 
     environment {
+        DOCKER = "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe"
         IMAGE_NAME = "ev-car-recommender"
         CONTAINER_NAME = "ev-car-recommender-container"
+        SONAR_HOST_URL = "https://sonarcloud.io"
         CI = "true"
     }
 
     stages {
 
-        stage('Clone Repository') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Ketan2605chavan/ev-car-recommender.git'
@@ -22,12 +24,10 @@ pipeline {
             }
         }
 
-        stage('ESLint Code Quality Check') {
+        stage('ESLint Code Quality') {
             steps {
-                echo 'Running ESLint via Jenkins'
-                bat '''
-                npx eslint src || echo ESLint finished with warnings
-                '''
+                echo 'Running ESLint'
+                bat 'npx eslint src || echo ESLint completed with warnings'
             }
         }
 
@@ -35,46 +35,55 @@ pipeline {
             steps {
                 bat 'npm run test:coverage -- --watchAll=false --passWithNoTests'
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'coverage/**', fingerprint: true
+                }
+            }
+        }
+
+        stage('SonarCloud Analysis') {
+            environment {
+                SONAR_TOKEN = credentials('sonarcloud-token')
+            }
+            steps {
+                bat '''
+                npx sonar-scanner ^
+                  -Dsonar.projectKey=Ketan2605chavan_ev-car-recommender ^
+                  -Dsonar.organization=ketan2605chavan ^
+                  -Dsonar.sources=src ^
+                  -Dsonar.tests=src ^
+                  -Dsonar.exclusions=coverage/**,**/*.test.js ^
+                  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info ^
+                  -Dsonar.host.url=https://sonarcloud.io ^
+                  -Dsonar.token=%SONAR_TOKEN%
+                '''
+            }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t %IMAGE_NAME% .'
-            }
-        }
-
-        stage('Install Trivy (Jenkins-only)') {
-            steps {
-                bat '''
-                if not exist trivy (
-                  powershell -Command "Invoke-WebRequest -Uri https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_windows-64bit.zip -OutFile trivy.zip"
-                  powershell -Command "Expand-Archive trivy.zip -DestinationPath trivy"
-                )
-                '''
+                bat '"%DOCKER%" build -t %IMAGE_NAME% .'
             }
         }
 
         stage('Trivy Image Scan') {
             steps {
                 bat '''
-                trivy\\trivy.exe image --severity HIGH,CRITICAL --exit-code 0 %IMAGE_NAME%
+                "%DOCKER%" run --rm ^
+                  -v /var/run/docker.sock:/var/run/docker.sock ^
+                  aquasec/trivy:latest ^
+                  image %IMAGE_NAME%
                 '''
             }
         }
 
-        stage('Stop Old Container') {
+        stage('Deploy Container') {
             steps {
                 bat '''
-                docker stop %CONTAINER_NAME% || echo Not running
-                docker rm %CONTAINER_NAME% || echo Not found
-                '''
-            }
-        }
-
-        stage('Run Docker Container') {
-            steps {
-                bat '''
-                docker run -d -p 3000:80 --name %CONTAINER_NAME% %IMAGE_NAME%
+                "%DOCKER%" stop %CONTAINER_NAME% || exit 0
+                "%DOCKER%" rm %CONTAINER_NAME% || exit 0
+                "%DOCKER%" run -d -p 3000:80 --name %CONTAINER_NAME% %IMAGE_NAME%
                 '''
             }
         }
@@ -82,13 +91,11 @@ pipeline {
 
     post {
         success {
-            echo '✅ CI Pipeline Completed Successfully'
-            echo '🧹 ESLint Code Quality Check Done'
-            echo '🧪 Unit Tests with Coverage Done'
-            echo '🔐 Trivy Security Scan Done'
+            echo '✅ CI/CD Pipeline Completed Successfully'
+            echo '🧪 ESLint + Tests + Coverage Completed'
+            echo '🔐 Trivy Image Scan Completed'
             echo '🌐 App running at http://localhost:3000'
         }
-
         failure {
             echo '❌ Pipeline Failed'
         }
