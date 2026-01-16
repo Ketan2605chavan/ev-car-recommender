@@ -22,3 +22,8 @@ export const evData = [
     description: "Premium electric crossover with exceptional efficiency."
   }
 ];
+
+// ✅ ADD THIS FUNCTION
+export const recommendCar = (minRange) => {
+  return evData.find(ev => ev.range >= minRange);
+};
