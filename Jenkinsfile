@@ -9,7 +9,7 @@ pipeline {
 
     stages {
 
-        stage('Clone GitHub Repository') {
+        stage('Clone Repository') {
             steps {
                 git branch: 'main',
                     url: 'https://github.com/Ketan2605chavan/ev-car-recommender.git'
@@ -22,20 +22,17 @@ pipeline {
             }
         }
 
-        stage('Verify Test Files (Debug)') {
+        stage('ESLint Code Quality Check') {
             steps {
+                echo 'Running ESLint via Jenkins'
                 bat '''
-                echo ===== Listing src folder =====
-                dir src
-                echo ===== Listing test files =====
-                dir src\\__tests__
+                npx eslint src || echo ESLint finished with warnings
                 '''
             }
         }
 
         stage('Unit Tests with Coverage') {
             steps {
-                // CI-safe Jest execution
                 bat 'npm run test:coverage -- --watchAll=false --passWithNoTests'
             }
         }
@@ -46,12 +43,30 @@ pipeline {
             }
         }
 
-        stage('Stop Old Container (if exists)') {
+        stage('Install Trivy (Jenkins-only)') {
             steps {
                 bat '''
-                docker stop %CONTAINER_NAME% || echo Container not running
-                docker rm %CONTAINER_NAME% || echo Container not found
-                exit /b 0
+                if not exist trivy (
+                  powershell -Command "Invoke-WebRequest -Uri https://github.com/aquasecurity/trivy/releases/latest/download/trivy_0.49.1_windows-64bit.zip -OutFile trivy.zip"
+                  powershell -Command "Expand-Archive trivy.zip -DestinationPath trivy"
+                )
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                bat '''
+                trivy\\trivy.exe image --severity HIGH,CRITICAL --exit-code 0 %IMAGE_NAME%
+                '''
+            }
+        }
+
+        stage('Stop Old Container') {
+            steps {
+                bat '''
+                docker stop %CONTAINER_NAME% || echo Not running
+                docker rm %CONTAINER_NAME% || echo Not found
                 '''
             }
         }
@@ -67,13 +82,15 @@ pipeline {
 
     post {
         success {
-            echo '✅ Jenkins pipeline completed successfully!'
-            echo '🧪 Unit tests executed with coverage'
-            echo '🌐 Application running at http://localhost:3000'
+            echo '✅ CI Pipeline Completed Successfully'
+            echo '🧹 ESLint Code Quality Check Done'
+            echo '🧪 Unit Tests with Coverage Done'
+            echo '🔐 Trivy Security Scan Done'
+            echo '🌐 App running at http://localhost:3000'
         }
 
         failure {
-            echo '❌ Jenkins pipeline failed'
+            echo '❌ Pipeline Failed'
         }
     }
 }
