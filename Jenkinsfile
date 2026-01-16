@@ -31,11 +31,9 @@ pipeline {
         }
 
         stage('Unit Tests with Coverage') {
-    steps {
-        bat 'npm run test:coverage -- --watchAll=false'
-    }
-}
-
+            steps {
+                bat 'npm run test:coverage -- --watchAll=false'
+            }
             post {
                 always {
                     archiveArtifacts artifacts: 'coverage/**', fingerprint: true
@@ -43,7 +41,7 @@ pipeline {
             }
         }
 
-        // 🔕 SonarCloud skipped due to missing Java on Jenkins node
+        // ✅ SonarCloud intentionally skipped (Java not configured)
         stage('SonarCloud Analysis') {
             steps {
                 echo '⚠️ SonarCloud skipped: Java not configured on Jenkins node'
@@ -52,28 +50,28 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                bat '"%DOCKER%" build -t %IMAGE_NAME% .'
+                bat "\"%DOCKER%\" build -t %IMAGE_NAME% ."
             }
         }
 
         stage('Trivy Image Scan') {
             steps {
-                bat '''
+                bat """
                 "%DOCKER%" run --rm ^
                   -v /var/run/docker.sock:/var/run/docker.sock ^
                   aquasec/trivy:latest ^
                   image %IMAGE_NAME%
-                '''
+                """
             }
         }
 
         stage('Deploy Container') {
             steps {
-                bat '''
+                bat """
                 "%DOCKER%" stop %CONTAINER_NAME% || exit 0
                 "%DOCKER%" rm %CONTAINER_NAME% || exit 0
                 "%DOCKER%" run -d -p 3000:80 --name %CONTAINER_NAME% %IMAGE_NAME%
-                '''
+                """
             }
         }
     }
