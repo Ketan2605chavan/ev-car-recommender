@@ -32,7 +32,7 @@ pipeline {
 
         stage('Unit Tests with Coverage') {
             steps {
-                bat 'npm run test:coverage -- --watchAll=false --passWithNoTests'
+                bat 'npm run test:coverage -- --watchAll=false '
             }
             post {
                 always {
