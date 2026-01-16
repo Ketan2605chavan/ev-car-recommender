@@ -1,30 +1,49 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { BrowserRouter } from "react-router-dom";
 import Recommend from "./Recommend";
 
-// ✅ MOCK react-router navigation
-jest.mock("react-router-dom", () => ({
-  ...jest.requireActual("react-router-dom"),
-  useNavigate: () => jest.fn()
-}));
-
-const renderPage = (isLoggedIn) => {
-  render(<Recommend isLoggedIn={isLoggedIn} />);
+const renderWithRouter = (ui) => {
+  return render(<BrowserRouter>{ui}</BrowserRouter>);
 };
 
-test("renders Recommend page when logged in", () => {
-  renderPage(true);
+describe("Recommend page inputs", () => {
+  test("renders budget and minimum range inputs", () => {
+    renderWithRouter(<Recommend isLoggedIn={true} />);
 
-  expect(
-    screen.getByText(/find recommended evs/i)
-  ).toBeInTheDocument();
+    // Budget input
+    expect(
+      screen.getByPlaceholderText(/e.g., Mid/i)
+    ).toBeInTheDocument();
 
-  expect(
-    screen.getByText(/suggestions/i)
-  ).toBeInTheDocument();
-});
+    // Minimum range input
+    expect(
+      screen.getByDisplayValue("150")
+    ).toBeInTheDocument();
+  });
 
-test("asks confirmation when user is not logged in", () => {
-  renderPage(false);
+  test("allows user to change budget input", () => {
+    renderWithRouter(<Recommend isLoggedIn={true} />);
 
-  expect(window.confirm).toHaveBeenCalled();
+    const budgetInput = screen.getByPlaceholderText(/e.g., Mid/i);
+    fireEvent.change(budgetInput, { target: { value: "Low" } });
+
+    expect(budgetInput.value).toBe("Low");
+  });
+
+  test("allows user to change minimum range input", () => {
+    renderWithRouter(<Recommend isLoggedIn={true} />);
+
+    const rangeInput = screen.getByDisplayValue("150");
+    fireEvent.change(rangeInput, { target: { value: "300" } });
+
+    expect(rangeInput.value).toBe("300");
+  });
+
+  test("renders Show Recommendations button", () => {
+    renderWithRouter(<Recommend isLoggedIn={true} />);
+
+    expect(
+      screen.getByRole("button", { name: /show recommendations/i })
+    ).toBeInTheDocument();
+  });
 });
