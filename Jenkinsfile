@@ -31,9 +31,11 @@ pipeline {
         }
 
         stage('Unit Tests with Coverage') {
-            steps {
-                bat 'npm run test:coverage -- --watchAll=false '
-            }
+    steps {
+        bat 'npm run test:coverage -- --watchAll=false'
+    }
+}
+
             post {
                 always {
                     archiveArtifacts artifacts: 'coverage/**', fingerprint: true
